@@ -4,13 +4,24 @@ from cyberphishing_engine import (
     scan_qr_file
 )
 
+
+# ============================================================
+# PAGE CONFIGURATION
+# ============================================================
+
 st.set_page_config(
     page_title="CyberGuard",
     page_icon="🛡️",
     layout="wide"
 )
 
+
+# ============================================================
+# HEADER
+# ============================================================
+
 st.title("🛡️ CyberGuard")
+
 st.subheader(
     "AI-Powered Cyber Threat, Phishing & "
     "Digital Impersonation Detection"
@@ -25,7 +36,7 @@ st.divider()
 
 
 # ============================================================
-# MESSAGE / URL ANALYSIS
+# MESSAGE / URL SCANNER
 # ============================================================
 
 st.header("📩 Message & URL Scanner")
@@ -65,7 +76,12 @@ if st.button(
                 url_reports = result["url_reports"]
 
                 st.divider()
+
                 st.header("🛡️ CyberGuard Threat Report")
+
+                # --------------------------------------------
+                # MESSAGE SUMMARY
+                # --------------------------------------------
 
                 col1, col2, col3 = st.columns(3)
 
@@ -88,7 +104,7 @@ if st.button(
                     )
 
                 # --------------------------------------------
-                # MESSAGE INDICATORS
+                # THREAT INDICATORS
                 # --------------------------------------------
 
                 st.subheader(
@@ -126,6 +142,7 @@ if st.button(
                 if url_reports:
 
                     st.divider()
+
                     st.header("🔗 URL Analysis")
 
                     for url_report in url_reports:
@@ -158,6 +175,8 @@ if st.button(
                                 f'{url_report["risk_score"]} / 100'
                             )
 
+                        # Brand impersonation
+
                         brands = url_report[
                             "possible_impersonated_brands"
                         ]
@@ -168,6 +187,8 @@ if st.button(
                                 "Possible Brand Impersonation: "
                                 + ", ".join(brands)
                             )
+
+                        # URL indicators
 
                         indicators = url_report[
                             "detected_indicators"
@@ -190,7 +211,7 @@ if st.button(
                         )
 
                 # --------------------------------------------
-                # RECOMMENDATION
+                # MESSAGE RECOMMENDATION
                 # --------------------------------------------
 
                 st.divider()
@@ -211,7 +232,7 @@ if st.button(
 
 
 # ============================================================
-# QR CODE ANALYSIS
+# QR CODE SCANNER
 # ============================================================
 
 st.divider()
@@ -225,10 +246,16 @@ st.write(
 
 qr_file = st.file_uploader(
     "Upload QR Code Image",
-    type=["png", "jpg", "jpeg"]
+    type=["png", "jpg", "jpeg"],
+    key="qr_uploader"
 )
 
+
 if qr_file is not None:
+
+    # --------------------------------------------
+    # SHOW UPLOADED QR
+    # --------------------------------------------
 
     st.image(
         qr_file,
@@ -236,26 +263,35 @@ if qr_file is not None:
         width=250
     )
 
+    # --------------------------------------------
+    # SCAN BUTTON
+    # --------------------------------------------
+
     if st.button(
         "🔍 Scan QR Code",
         type="primary",
-        use_container_width=True
+        use_container_width=True,
+        key="scan_qr_button"
     ):
 
         try:
 
-            # Save uploaded file temporarily
+            # Save uploaded image temporarily
             temp_filename = "uploaded_qr.png"
 
             with open(temp_filename, "wb") as f:
 
                 f.write(qr_file.getbuffer())
 
+            # --------------------------------------------
+            # RUN QR ANALYSIS
+            # --------------------------------------------
+
             with st.spinner(
                 "CyberGuard is decoding and analyzing the QR code..."
             ):
 
-                result = scan_qr_file(
+                qr_result = scan_qr_file(
                     temp_filename
                 )
 
@@ -263,7 +299,7 @@ if qr_file is not None:
             # NO QR DETECTED
             # --------------------------------------------
 
-            if result["payload"] is None:
+            if qr_result["payload"] is None:
 
                 st.error(
                     "No QR code could be detected in the image."
@@ -271,7 +307,9 @@ if qr_file is not None:
 
             else:
 
-                analysis = result["analysis"]
+                payload = qr_result["payload"]
+                payload_type = qr_result["payload_type"]
+                analysis = qr_result["analysis"]
 
                 st.divider()
 
@@ -280,7 +318,7 @@ if qr_file is not None:
                 )
 
                 # ----------------------------------------
-                # QR PAYLOAD
+                # DECODED PAYLOAD
                 # ----------------------------------------
 
                 st.subheader(
@@ -288,24 +326,26 @@ if qr_file is not None:
                 )
 
                 st.code(
-                    result["payload"],
+                    payload,
                     language=None
                 )
 
                 st.metric(
                     "Payload Type",
-                    result["payload_type"]
+                    payload_type
                 )
 
-                # ----------------------------------------
-                # ANALYSIS
-                # ----------------------------------------
+                st.divider()
 
-                st.subheader(
-                    "🔍 Analysis"
-                )
+                # ==================================================
+                # URL QR
+                # ==================================================
 
-                if result["payload_type"] == "URL":
+                if payload_type == "URL":
+
+                    st.subheader(
+                        "🔗 URL Analysis"
+                    )
 
                     col1, col2, col3 = st.columns(3)
 
@@ -330,6 +370,8 @@ if qr_file is not None:
                             f'{analysis["risk_score"]} / 100'
                         )
 
+                    # Brand impersonation
+
                     brands = analysis[
                         "possible_impersonated_brands"
                     ]
@@ -337,9 +379,11 @@ if qr_file is not None:
                     if brands:
 
                         st.warning(
-                            "Possible Brand Impersonation: "
+                            "⚠️ Possible Brand Impersonation: "
                             + ", ".join(brands)
                         )
+
+                    # Indicators
 
                     indicators = analysis[
                         "detected_indicators"
@@ -361,7 +405,137 @@ if qr_file is not None:
                         analysis["recommendation"]
                     )
 
-                else:
+                # ==================================================
+                # UPI QR
+                # ==================================================
+
+                elif payload_type == "UPI":
+
+                    st.subheader(
+                        "💳 UPI Payment Analysis"
+                    )
+
+                    col1, col2, col3 = st.columns(3)
+
+                    with col1:
+
+                        st.metric(
+                            "Status",
+                            "UPI Payment QR"
+                        )
+
+                    with col2:
+
+                        st.metric(
+                            "Risk Level",
+                            analysis["risk_level"]
+                        )
+
+                    with col3:
+
+                        st.metric(
+                            "Risk Score",
+                            f'{analysis["risk_score"]} / 100'
+                        )
+
+                    # ----------------------------------------
+                    # UPI DETAILS
+                    # ----------------------------------------
+
+                    st.subheader(
+                        "💳 UPI Details"
+                    )
+
+                    upi_details = analysis[
+                        "upi_details"
+                    ]
+
+                    upi_col1, upi_col2 = st.columns(2)
+
+                    with upi_col1:
+
+                        st.write(
+                            "**UPI ID:**"
+                        )
+
+                        st.code(
+                            upi_details["upi_id"]
+                            or "Not provided"
+                        )
+
+                        st.write(
+                            "**Payee Name:**"
+                        )
+
+                        st.write(
+                            upi_details["payee_name"]
+                            or "Not provided"
+                        )
+
+                        st.write(
+                            "**Currency:**"
+                        )
+
+                        st.write(
+                            upi_details["currency"]
+                            or "Not specified"
+                        )
+
+                    with upi_col2:
+
+                        st.write(
+                            "**Amount:**"
+                        )
+
+                        st.write(
+                            upi_details["amount"]
+                            or "Not specified"
+                        )
+
+                        st.write(
+                            "**Transaction Note:**"
+                        )
+
+                        st.write(
+                            upi_details["transaction_note"]
+                            or "None"
+                        )
+
+                    # ----------------------------------------
+                    # UPI INDICATORS
+                    # ----------------------------------------
+
+                    indicators = analysis[
+                        "detected_indicators"
+                    ]
+
+                    if indicators:
+
+                        st.warning(
+                            "⚠️ Detected UPI Indicators"
+                        )
+
+                        for indicator in indicators:
+
+                            st.write(
+                                f"• {indicator}"
+                            )
+
+                    else:
+
+                        st.success(
+                            "No suspicious UPI indicators detected."
+                        )
+
+                # ==================================================
+                # TEXT QR
+                # ==================================================
+
+                elif payload_type == "TEXT":
+
+                    st.subheader(
+                        "📝 Message Analysis"
+                    )
 
                     col1, col2, col3 = st.columns(3)
 
@@ -386,14 +560,15 @@ if qr_file is not None:
                             f'{analysis["risk_score"]} / 100'
                         )
 
-                    categories = analysis[
-                        "detected_categories"
-                    ]
+                    categories = analysis.get(
+                        "detected_categories",
+                        {}
+                    )
 
                     if categories:
 
-                        st.markdown(
-                            "**Detected Threat Indicators:**"
+                        st.subheader(
+                            "⚠️ Detected Threat Indicators"
                         )
 
                         for category, indicators in categories.items():
@@ -414,8 +589,82 @@ if qr_file is not None:
                             "No suspicious message indicators detected."
                         )
 
+                    if "recommendation" in analysis:
+
+                        st.info(
+                            analysis["recommendation"]
+                        )
+
+                # ==================================================
+                # EMAIL QR
+                # ==================================================
+
+                elif payload_type == "EMAIL":
+
+                    st.subheader(
+                        "📧 Email QR Payload"
+                    )
+
                     st.info(
-                        analysis["recommendation"]
+                        analysis.get(
+                            "status",
+                            "Email QR Payload Detected"
+                        )
+                    )
+
+                    st.code(
+                        payload,
+                        language=None
+                    )
+
+                    if "recommendation" in analysis:
+
+                        st.info(
+                            analysis["recommendation"]
+                        )
+
+                # ==================================================
+                # PHONE QR
+                # ==================================================
+
+                elif payload_type == "PHONE":
+
+                    st.subheader(
+                        "📞 Phone QR Payload"
+                    )
+
+                    st.info(
+                        analysis.get(
+                            "status",
+                            "Phone QR Payload Detected"
+                        )
+                    )
+
+                    st.code(
+                        payload,
+                        language=None
+                    )
+
+                    if "recommendation" in analysis:
+
+                        st.info(
+                            analysis["recommendation"]
+                        )
+
+                # ==================================================
+                # UNKNOWN
+                # ==================================================
+
+                else:
+
+                    st.warning(
+                        "This QR payload type is not currently "
+                        "supported for detailed analysis."
+                    )
+
+                    st.code(
+                        payload,
+                        language=None
                     )
 
         except Exception as e:
